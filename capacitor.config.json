@@ -1,0 +1,15 @@
+{
+  "appId": "com.shreymusic.app",
+  "appName": "SHREY MUSIC",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#F2E8D5"
+    }
+  }
+}

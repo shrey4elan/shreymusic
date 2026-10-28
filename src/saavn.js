@@ -1,0 +1,143 @@
+import CryptoJS from 'crypto-js'
+
+const DES_KEY = '38346591'
+
+// Decrypts JioSaavn's encrypted_media_url to get direct stream link
+export function decryptUrl(encrypted) {
+  if (!encrypted) return null
+  try {
+    const keyHex = CryptoJS.enc.Utf8.parse(DES_KEY)
+    const ciphertext = CryptoJS.enc.Base64.parse(encrypted)
+    const decrypted = CryptoJS.DES.decrypt({ ciphertext }, keyHex, {
+      mode: CryptoJS.mode.ECB,
+      padding: CryptoJS.pad.Pkcs7
+    }).toString(CryptoJS.enc.Utf8)
+
+    if (!decrypted) return null
+    // Prefer 320kbps or 160kbps high quality if available, falling back to 96kbps
+    return decrypted.replace(/_96\.mp4/, '_320.mp4')
+  } catch (err) {
+    console.error('Failed to decrypt JioSaavn URL:', err)
+    return null
+  }
+}
+
+// Unescape HTML entities like &quot;, &amp;
+function cleanString(str) {
+  if (!str) return ''
+  const txt = document.createElement('textarea')
+  txt.innerHTML = str
+  return txt.value
+}
+
+// Search songs on JioSaavn using local Vite proxy with direct/CORS fallback
+export async function searchSongs(query) {
+  if (!query || !query.trim()) return []
+  const cleanQ = query.trim()
+  const params = `?__call=search.getResults&q=${encodeURIComponent(cleanQ)}&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=25`
+
+  let data = null
+  // 1. Try Vite local/preview proxy (/jio-api)
+  try {
+    const res = await fetch(`/jio-api${params}`)
+    if (res.ok) {
+      data = await res.json()
+    }
+  } catch (err) {
+    // Vite proxy not active or external environment
+  }
+
+  // 2. Fallback to hosted Saavn API (CORS-enabled, reliable)
+  if (!data || !data.results) {
+    try {
+      const res = await fetch(`https://jiosaavn-eta.vercel.app/search/songs?query=${encodeURIComponent(cleanQ)}`)
+      if (res.ok) {
+        const j = await res.json()
+        const raw = j?.data?.results || []
+        // Normalize hosted-API shape to the raw JioSaavn shape the mapper expects
+        data = {
+          results: raw.map(r => ({
+            id: r.id,
+            title: r.name,
+            image: r.image?.findLast?.(u => u.quality !== '12x12')?.link || r.image,
+            subtitle: r.primaryArtists || r.subtitle,
+            more_info: {
+              encrypted_media_url: r.downloadUrl?.findLast?.(u => u.quality === '320kbps')?.link || r.downloadUrl?.[0]?.link || r.downloadUrl,
+              duration: r.duration,
+              album: r.album?.name,
+              artistMap: { primary_artists: r.primaryArtists ? [{ name: r.primaryArtists }] : [] },
+              singers: r.singers,
+            },
+          })),
+        }
+      }
+    } catch (err) {
+      console.warn('Hosted API fallback failed:', err)
+    }
+  }
+
+  // 3. Last resort: CORS proxies to the raw JioSaavn API
+  if (!data || !data.results) {
+    const fullUrl = `https://www.jiosaavn.com/api.php${params}`
+    for (const proxy of [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(fullUrl)}`,
+      `https://corsproxy.io/?url=${encodeURIComponent(fullUrl)}`,
+    ]) {
+      try {
+        const res = await fetch(proxy)
+        if (res.ok) {
+          data = await res.json()
+          if (data?.results) break
+        }
+      } catch (err) {
+        console.warn('CORS proxy failed:', err)
+      }
+    }
+  }
+
+  const list = data?.results || []
+  return list.map(item => {
+    const enc = item.more_info?.encrypted_media_url
+    // The hosted fallback API already returns plain URLs (aac.saavncdn.com/..._320.mp4);
+    // only run real encrypted payloads through DES decryption.
+    const directUrl = enc && enc.startsWith('https://') && /_\d+\.mp4/.test(enc) ? enc : decryptUrl(enc)
+    
+    // Choose highest available cover art
+    let cover = item.image || ''
+    if (Array.isArray(cover)) {
+      // hosted-API fallback returns image as a quality list -> pick the best one
+      cover = (cover.findLast(u => u?.quality !== '12x12') || cover[0])?.link || ''
+    }
+    if (cover) {
+      cover = String(cover).replace(/150x150/, '500x500')
+    }
+
+    const durationSec = parseInt(item.more_info?.duration || '0', 10)
+    const durationFmt = durationSec > 0
+      ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}`
+      : ''
+
+    const artistName = cleanString(
+      item.more_info?.artistMap?.primary_artists?.[0]?.name ||
+      item.subtitle ||
+      item.more_info?.singers ||
+      'Unknown Artist'
+    )
+
+    return {
+      id: item.id,
+      title: cleanString(item.title),
+      artist: artistName,
+      album: cleanString(item.more_info?.album || ''),
+      cover: cover || '/images/cover-01.svg',
+      src: directUrl,
+      duration: durationFmt
+    }
+  }).filter(song => !!song.src)
+}
+
+// Fetch trending / recommended tracks for home dashboard
+export async function getTrendingSongs() {
+  return searchSongs('Top Hindi Trending')
+}
+
