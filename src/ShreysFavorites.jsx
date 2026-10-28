@@ -414,7 +414,7 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
               <p>Enter your Creator Passkey to manage Shrey's Favorites.</p>
               <input
                 type="password"
-                placeholder="Enter passkey (e.g. shreycreator)"
+                placeholder="Enter private passkey"
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
                 autoFocus

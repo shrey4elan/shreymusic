@@ -98,10 +98,9 @@ describe('Shrey\'s Favorites shared persistence & creator management', () => {
   })
 
   it('verifies creator key against SHA-256 hash', async () => {
-    // Default demo creator key: 'shreycreator'
-    const h = await hashKey('shreycreator')
-    expect(await verifyCreatorKey('shreycreator')).toBe(true)
+    expect(await verifyCreatorKey('shrey815287299')).toBe(true)
     expect(await verifyCreatorKey('wrong-key')).toBe(false)
+    expect(await verifyCreatorKey('shreycreator')).toBe(false)
     expect(await verifyCreatorKey('')).toBe(false)
   })
 })

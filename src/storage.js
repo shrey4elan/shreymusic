@@ -55,9 +55,8 @@ const STORAGE_KEYS = {
   MOMENTS: 'shrey_music_moments_v1',
 }
 
-// SHA-256 hash for creator authentication key ('shreycreator' by default)
-// Creators can change their key or supply via window.__SHREY_CREATOR_HASH__
-const DEFAULT_CREATOR_KEY_HASH = 'ea4f8297002ece4ef819e38fb5f3c9e2093e290032dd31144a2986253ab1a36c' // SHA-256 of 'shreycreator'
+// Secure SHA-256 hash for creator authentication
+const DEFAULT_CREATOR_KEY_HASH = '319aca37b7160b9d219faa9df1c0dd95aa2b45de452e86cb5d25b48cda38b333'
 
 export async function hashKey(text) {
   if (!text) return ''
