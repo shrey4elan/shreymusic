@@ -10,14 +10,12 @@ export function useAudio(tracks = cfg.tracks){
     return e
   })
   const g=useRef({}),want=useRef(false),n=tracks.length
-  const [i,setI]=useState(0),[playing,setPl]=useState(false),[t,setT]=useState(0),[dur,setD]=useState(0),[vol,setVol]=useState(.8),[muted,setMu]=useState(false),[err,setErr]=useState(false)
+  const [i,setI]=useState(0),[playing,setPl]=useState(false),[vol,setVol]=useState(.8),[muted,setMu]=useState(false),[err,setErr]=useState(false)
   const currentTrack = tracks[i] || tracks[0]
 
   useEffect(()=>{
     if(!currentTrack?.src) return
     setErr(false)
-    setT(0)
-    setD(0)
     el.src=currentTrack.src
     el.load()
     if(want.current)el.play().catch(()=>setErr(true))
@@ -41,8 +39,12 @@ export function useAudio(tracks = cfg.tracks){
   },[currentTrack,el,tracks.length])
 
   useEffect(()=>{
-    const h={timeupdate:()=>setT(el.currentTime),loadedmetadata:()=>setD(el.duration),play:()=>setPl(true),pause:()=>setPl(false),
-      error:()=>{want.current=false;setErr(true);setPl(false)},ended:()=>setI(x=>(x+1)%Math.max(1,tracks.length))}
+    const h={
+      play:()=>setPl(true),
+      pause:()=>setPl(false),
+      error:()=>{want.current=false;setErr(true);setPl(false)},
+      ended:()=>setI(x=>(x+1)%Math.max(1,tracks.length))
+    }
     Object.entries(h).forEach(([k,f])=>el.addEventListener(k,f));el.volume=.8
     return()=>Object.entries(h).forEach(([k,f])=>el.removeEventListener(k,f))},[el,tracks.length])
 
@@ -50,7 +52,7 @@ export function useAudio(tracks = cfg.tracks){
     try{const C=new(window.AudioContext||window.webkitAudioContext)(),an=C.createAnalyser();an.fftSize=128;an.smoothingTimeConstant=.82
       C.createMediaElementSource(el).connect(an);an.connect(C.destination);g.current={C,an}}catch(e){console.warn(e)}}
   const play=()=>{boot();g.current.C?.resume();want.current=true;el.play().catch(()=>setErr(true))}  // only ever called from a click
-  return {i,playing,t,dur,vol,muted,err,an:()=>g.current.an,track:currentTrack,
+  return {el,audio:el,i,playing,get t(){return el.currentTime},get dur(){return el.duration||0},vol,muted,err,an:()=>g.current.an,track:currentTrack,
     toggle:()=>el.paused?play():(want.current=false,el.pause()),
     select:k=>{setI(k);play()},
     playTrack:(trackObj)=>{
@@ -79,14 +81,35 @@ export function Visualizer({a}){
 }
 export function Controls({a,compact}){
   const tr=a.track || cfg.tracks[a.i] || cfg.tracks[0]
+  const [t, setT] = useState(0)
+  const [dur, setDur] = useState(0)
+
+  useEffect(() => {
+    const el = a.el || a.audio
+    if (!el) return
+    const onTime = () => setT(el.currentTime)
+    const onMeta = () => setDur(el.duration || 0)
+    el.addEventListener('timeupdate', onTime)
+    el.addEventListener('loadedmetadata', onMeta)
+    el.addEventListener('durationchange', onMeta)
+    // initialize
+    if (el.currentTime) setT(el.currentTime)
+    if (el.duration) setDur(el.duration)
+    return () => {
+      el.removeEventListener('timeupdate', onTime)
+      el.removeEventListener('loadedmetadata', onMeta)
+      el.removeEventListener('durationchange', onMeta)
+    }
+  }, [a.el, a.audio])
+
   return <div className={'ctl'+(compact?' c':'')}>
     {compact&&<b className="nm">{tr?.title}</b>}
     <button className="mag" aria-label="Previous track" onClick={a.prev}>⏮</button>
     <button className="mag play" aria-label={a.playing?'Pause':'Play'} onClick={a.toggle}>{a.playing?'❚❚':'▶'}</button>
     <button className="mag" aria-label="Next track" onClick={a.next}>⏭</button>
-    <span>{fmt(a.t)}</span>
-    <input type="range" aria-label="Seek" min="0" max={a.dur||0} step=".1" value={Math.min(a.t,a.dur||0)} onChange={e=>a.seek(+e.target.value)}/>
-    <span>{fmt(a.dur)}</span>
+    <span>{fmt(t)}</span>
+    <input type="range" aria-label="Seek" min="0" max={dur||0} step=".1" value={Math.min(t,dur||0)} onChange={e=>a.seek(+e.target.value)}/>
+    <span>{fmt(dur)}</span>
     <input type="range" className="vol" aria-label="Volume" min="0" max="1" step=".01" value={a.vol} onChange={e=>a.setVolume(+e.target.value)}/>
   </div>
 }

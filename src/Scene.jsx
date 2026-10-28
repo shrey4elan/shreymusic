@@ -53,6 +53,7 @@ function World({low}){
   const acc=useMemo(()=>new THREE.Color(cfg.accent),[]),blue=useMemo(()=>new THREE.Color('#D4AD72'),[])
   const pos=useMemo(()=>{const a=new Float32Array(NP*3);for(let i=0;i<NP;i++){a[i*3]=(Math.random()-.5)*16;a[i*3+1]=Math.random()*6;a[i*3+2]=8-Math.random()*L}return a},[NP,L])
   useFrame((s,dt)=>{
+    if (typeof document !== 'undefined' && document.hidden) return
     dt=cl(dt,.001,.05);const k=1-Math.exp(-dt*3),pp=state.sp
     state.sp+=(state.p-state.sp)*k;const p=state.sp
     state.v+=(Math.abs(p-pp)/dt-state.v)*.1
