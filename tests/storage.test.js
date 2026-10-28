@@ -15,6 +15,8 @@ import {
   getMoments,
   saveMoment,
   removeMoment,
+  fetchRemoteFavorites,
+  publishFavoritesToCloud,
 } from '../src/storage.js'
 
 describe('Local Library storage', () => {
@@ -144,5 +146,37 @@ describe('Personal Moments and Selfie Archive', () => {
   it('rejects saving invalid moment without image', () => {
     expect(saveMoment(null)).toBe(false)
     expect(saveMoment({ image: '' })).toBe(false)
+  })
+})
+
+describe('Remote Cloud Favorites Sync', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('fetches remote favorites and updates storage', async () => {
+    const remoteList = [{ id: 'rem-1', title: 'Remote Song', artist: 'Artist R' }]
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => remoteList
+    }))
+
+    const result = await fetchRemoteFavorites('https://example.com/favorites.json')
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('rem-1')
+    expect(getFavorites()[0].id).toBe('rem-1')
+  })
+
+  it('falls back to local favorites if network fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
+    const result = await fetchRemoteFavorites('https://example.com/favorites.json')
+    expect(result.length).toBeGreaterThan(0) // seeded fallback
+  })
+
+  it('rejects publishing without GitHub token', async () => {
+    const res = await publishFavoritesToCloud('', [])
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('Token is required')
   })
 })

@@ -8,7 +8,11 @@ import {
   verifyCreatorKey,
   saveToLibrary,
   removeFromLibrary,
-  isInLibrary
+  isInLibrary,
+  fetchRemoteFavorites,
+  publishFavoritesToCloud,
+  getSavedCreatorToken,
+  saveCreatorToken
 } from './storage'
 import { searchSongs, resolveSongUrl } from './saavn'
 
@@ -29,6 +33,12 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
   const [previewAudio, setPreviewAudio] = useState(null)
   const [previewingId, setPreviewingId] = useState(null)
 
+  // Creator Cloud Publish State
+  const [publishing, setPublishing] = useState(false)
+  const [publishStatus, setPublishStatus] = useState('')
+  const [showTokenModal, setShowTokenModal] = useState(false)
+  const [githubToken, setGithubToken] = useState(getSavedCreatorToken())
+
   const searchTimer = useRef(null)
 
   const reload = () => {
@@ -37,6 +47,12 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
 
   useEffect(() => {
     reload()
+    // Fetch live shared favorites from cloud for everyone
+    fetchRemoteFavorites().then((live) => {
+      if (Array.isArray(live) && live.length > 0) {
+        setFavorites(live)
+      }
+    })
     window.addEventListener('storage', reload)
     // Check if session had creator auth
     if (sessionStorage.getItem('shrey_creator_auth') === 'true') {
@@ -49,6 +65,27 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
       }
     }
   }, [])
+
+  const handlePublishToEveryone = async () => {
+    const token = (githubToken || getSavedCreatorToken()).trim()
+    if (!token) {
+      setShowTokenModal(true)
+      return
+    }
+    setPublishing(true)
+    setPublishStatus('')
+    const res = await publishFavoritesToCloud(token, favorites)
+    setPublishing(false)
+    if (res.success) {
+      setPublishStatus('✅ Broadcasted to everyone! All phones opening Shrey Music will now see these picks.')
+      setTimeout(() => setPublishStatus(''), 7000)
+    } else {
+      setPublishStatus(`❌ Broadcast error: ${res.error}`)
+      if (res.error && (res.error.includes('401') || res.error.includes('Bad credentials'))) {
+        setShowTokenModal(true)
+      }
+    }
+  }
 
   // Creator Key Verification
   const handleKeySubmit = async (e) => {
@@ -215,9 +252,25 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
           <div className="creator-studio-header">
             <div>
               <h3>👑 Creator Studio: Manage Collection</h3>
-              <p>Search JioSaavn library, preview tracks, and publish songs with your personal recommendations.</p>
+              <p>Search JioSaavn library, add recommendation quotes, and broadcast changes to everyone's phone.</p>
+            </div>
+            <div className="creator-publish-actions">
+              <button
+                type="button"
+                className="creator-publish-cloud-btn hov"
+                onClick={handlePublishToEveryone}
+                disabled={publishing}
+              >
+                {publishing ? '⏳ Broadcasting...' : '☁️ Push Updates to Everyone\'s Phone'}
+              </button>
             </div>
           </div>
+
+          {publishStatus && (
+            <div className={'creator-publish-banner' + (publishStatus.startsWith('✅') ? ' success' : ' error')}>
+              {publishStatus}
+            </div>
+          )}
 
           {/* Search Box */}
           <div className="creator-search-box">
@@ -434,6 +487,56 @@ export default function ShreysFavorites({ currentTrack, isPlaying, onPlaySong })
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub Cloud Connection Modal */}
+      {showTokenModal && (
+        <div className="echo-modal-backdrop" onClick={() => setShowTokenModal(false)}>
+          <div className="echo-modal-dialog small" onClick={(e) => e.stopPropagation()}>
+            <div className="echo-modal-header">
+              <h3>☁️ Connect Cloud Broadcast</h3>
+              <button className="echo-modal-close hov" onClick={() => setShowTokenModal(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="creator-token-body">
+              <p>
+                To broadcast your changes to everyone's phone worldwide, connect your GitHub token once.
+              </p>
+              <input
+                type="password"
+                placeholder="Enter GitHub Personal Access Token (PAT)"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                autoFocus
+                className="echo-input hov"
+              />
+              <p className="creator-token-hint">
+                💡 Need a token? In GitHub, go to <b>Settings → Developer Settings → Personal access tokens → Tokens (classic)</b> and generate a token with <b>repo</b> scope.
+              </p>
+              <div className="echo-modal-actions">
+                <button
+                  type="button"
+                  className="echo-btn-secondary hov"
+                  onClick={() => setShowTokenModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="echo-btn-primary hov"
+                  onClick={() => {
+                    saveCreatorToken(githubToken)
+                    setShowTokenModal(false)
+                    handlePublishToEveryone()
+                  }}
+                >
+                  Save & Broadcast
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -133,6 +133,105 @@ export function isInLibrary(songId) {
 // ---------------------------------------------------------------------------
 // Shrey's Favorites (Shared collection + Creator modifications)
 // ---------------------------------------------------------------------------
+export const REMOTE_FAVORITES_URL = 'https://raw.githubusercontent.com/shrey4elan/shreymusic/master/public/favorites.json'
+const GITHUB_REPO = 'shrey4elan/shreymusic'
+const GITHUB_FILE_PATH = 'public/favorites.json'
+
+export async function fetchRemoteFavorites(url = REMOTE_FAVORITES_URL) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' })
+    if (res && res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        saveFavorites(data)
+        return data
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch remote favorites, using local cache:', err)
+  }
+  return getFavorites()
+}
+
+export function getSavedCreatorToken() {
+  try {
+    if (typeof localStorage === 'undefined') return ''
+    return localStorage.getItem('shrey_creator_github_token') || ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveCreatorToken(token) {
+  try {
+    if (typeof localStorage === 'undefined') return
+    if (!token) {
+      localStorage.removeItem('shrey_creator_github_token')
+    } else {
+      localStorage.setItem('shrey_creator_github_token', token.trim())
+    }
+  } catch {}
+}
+
+export async function publishFavoritesToCloud(token, favoritesList) {
+  if (!token || !token.trim()) {
+    return { success: false, error: 'GitHub Personal Access Token is required to publish to everyone' }
+  }
+  const cleanToken = token.trim()
+  saveCreatorToken(cleanToken)
+
+  try {
+    // 1. Get current file sha from GitHub
+    const getRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`, {
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'ShreyMusicApp'
+      }
+    })
+
+    let sha = null
+    if (getRes.ok) {
+      const existing = await getRes.json()
+      sha = existing.sha
+    }
+
+    // 2. Encode updated content to Base64 (supporting unicode)
+    const jsonStr = JSON.stringify(favoritesList, null, 2)
+    const base64Content = btoa(unescape(encodeURIComponent(jsonStr)))
+
+    // 3. Commit updated favorites.json directly to GitHub
+    const putRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${cleanToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'ShreyMusicApp'
+      },
+      body: JSON.stringify({
+        message: 'chore: update Shrey\'s Favorites collection',
+        content: base64Content,
+        sha: sha || undefined
+      })
+    })
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}))
+      return {
+        success: false,
+        error: errData.message || `GitHub error: HTTP ${putRes.status}`
+      }
+    }
+
+    // Also update local cache
+    saveFavorites(favoritesList)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err?.message || 'Network error publishing to cloud' }
+  }
+}
+
 export function getFavorites() {
   try {
     if (typeof localStorage === 'undefined') return SEED_FAVORITES

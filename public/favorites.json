@@ -1,0 +1,46 @@
+[
+  {
+    "id": "rjkrTnma",
+    "title": "Kesariya",
+    "artist": "Pritam, Arijit Singh",
+    "album": "Brahmastra",
+    "cover": "https://c.saavncdn.com/871/Brahmastra-Original-Motion-Picture-Soundtrack-Hindi-2022-20221006155213-500x500.jpg",
+    "duration": "4:28",
+    "description": "The golden anthem. Melodic guitar intro and peak Arijit vocals.",
+    "featured": true,
+    "addedAt": "2026-10-01T00:00:00.000Z"
+  },
+  {
+    "id": "I_Q4s_3-",
+    "title": "Chaleya",
+    "artist": "Anirudh Ravichander, Arijit Singh",
+    "album": "Jawan",
+    "cover": "https://c.saavncdn.com/026/Chaleya-From-Jawan-Hindi-2023-20230814114324-500x500.jpg",
+    "duration": "3:20",
+    "description": "Effortless groove, signature Anirudh rhythm section.",
+    "featured": true,
+    "addedAt": "2026-10-05T00:00:00.000Z"
+  },
+  {
+    "id": "c8pA7mP3",
+    "title": "Tum Hi Ho",
+    "artist": "Mithoon, Arijit Singh",
+    "album": "Aashiqui 2",
+    "cover": "https://c.saavncdn.com/152/Aashiqui-2-Hindi-2013-500x500.jpg",
+    "duration": "4:22",
+    "description": "The track that defined a decade of Hindi ballads.",
+    "featured": false,
+    "addedAt": "2026-10-10T00:00:00.000Z"
+  },
+  {
+    "id": "KGfDrbWe",
+    "title": "Apna Bana Le",
+    "artist": "Sachin-Jigar, Arijit Singh",
+    "album": "Bhediya",
+    "cover": "https://c.saavncdn.com/978/Bhediya-Hindi-2022-20221205161008-500x500.jpg",
+    "duration": "4:21",
+    "description": "Soft acoustic masterpiece with soul-stirring lyrics.",
+    "featured": false,
+    "addedAt": "2026-10-15T00:00:00.000Z"
+  }
+]
