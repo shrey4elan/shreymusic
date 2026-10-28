@@ -1,6 +1,6 @@
 // In-app updater for Shrey Music
-export const APP_VERSION = '1.1.0'
-export const APP_VERSION_CODE = 2
+export const APP_VERSION = '2.0.0'
+export const APP_VERSION_CODE = 3
 
 const STORAGE_KEYS = {
   UPDATE_FEED_URL: 'shrey_music_update_feed_url',
