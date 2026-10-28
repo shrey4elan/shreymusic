@@ -7,8 +7,8 @@ const STORAGE_KEYS = {
   DISMISSED_VERSION: 'shrey_music_dismissed_update_version',
 }
 
-// Fallback / default feed endpoint (can be GitHub raw, Netlify, or custom URL)
-export const DEFAULT_UPDATE_FEED = 'https://raw.githubusercontent.com/shreymusic/releases/main/version.json'
+// Fallback / default feed endpoint (hosted on user GitHub repo)
+export const DEFAULT_UPDATE_FEED = 'https://raw.githubusercontent.com/shrey4elan/shreymusic/master/public/version.json'
 
 export function getUpdateFeedUrl() {
   try {
