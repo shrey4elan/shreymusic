@@ -1659,4 +1659,98 @@ h2{font-size:clamp(2.6rem,8vw,7rem)}
   text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------------------
+   IN-APP UPDATER UI
+--------------------------------------------------------------------------- */
+.echo-update-toast {
+  position: fixed;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 24, 20, 0.92);
+  backdrop-filter: blur(16px);
+  color: var(--gold);
+  border: 1.5px solid var(--gold);
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 99;
+  animation: fadeInDown 0.3s var(--ease);
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.echo-update-dialog {
+  text-align: left;
+}
+.echo-update-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  background: rgba(212, 173, 114, 0.15);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 173, 114, 0.3);
+}
+.echo-update-title {
+  font-family: var(--serif);
+  font-size: 1.8rem;
+  color: #38281E;
+  margin: 0.75rem 0 0.25rem;
+}
+.echo-update-version-tag {
+  font-size: 0.85rem;
+  color: var(--mut);
+  margin-bottom: 1.25rem;
+}
+.echo-update-version-tag b {
+  color: var(--fg);
+}
+.echo-update-notes-box {
+  background: rgba(255, 255, 255, 0.65);
+  border: var(--gb);
+  border-radius: var(--r-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.echo-update-notes-box h4 {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ad);
+  margin-bottom: 0.4rem;
+}
+.echo-update-notes-box p {
+  font-size: 0.9rem;
+  color: var(--fg);
+  line-height: 1.5;
+}
+.echo-update-info-note {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--ad);
+  background: rgba(212, 173, 114, 0.12);
+  border-left: 3px solid var(--gold);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 1.5rem;
+}
+.echo-update-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.echo-update-btn {
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
+}
+.echo-update-btn:hover {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+}
+
 

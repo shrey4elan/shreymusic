@@ -7,9 +7,11 @@ import Desert from './Desert'
 import MomentsPage from './MomentsPage'
 import MyLibrary from './MyLibrary'
 import ShreysFavorites from './ShreysFavorites'
+import UpdateModal from './UpdateModal'
 import { useAudio, Controls, Visualizer } from './Audio'
 import { searchSongs, resolveSongUrl } from './saavn'
 import { isInLibrary, saveToLibrary, removeFromLibrary } from './storage'
+import { checkForUpdate, getDismissedVersion, APP_VERSION } from './updater'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -38,6 +40,11 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([])
   const [searchErr, setSearchErr] = useState('')
   const [, setLibTick] = useState(0) // Forces re-render of heart states when library changes
+
+  // In-App Updater State
+  const [updateInfo, setUpdateInfo] = useState(null)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [updateToast, setUpdateToast] = useState('')
 
   const searchTimeout = useRef(null)
   const abortCtrl = useRef(null)
@@ -98,6 +105,36 @@ export default function App() {
       mounted = false
     }
   }, [])
+
+  // Auto-check for in-app updates in background 2.5s after launch
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const info = await checkForUpdate()
+      if (info && info.hasUpdate) {
+        const dismissed = getDismissedVersion()
+        if (info.forceUpdate || dismissed < info.latestVersionCode) {
+          setUpdateInfo(info)
+        }
+      }
+    }, 2500)
+    return () => clearTimeout(t)
+  }, [])
+
+  const handleManualCheckUpdate = async () => {
+    setCheckingUpdate(true)
+    setUpdateToast('')
+    const info = await checkForUpdate()
+    setCheckingUpdate(false)
+    if (info && info.hasUpdate) {
+      setUpdateInfo(info)
+    } else if (info && info.success) {
+      setUpdateToast(`✨ You're using the latest version of Shrey Music (v${APP_VERSION})!`)
+      setTimeout(() => setUpdateToast(''), 4000)
+    } else {
+      setUpdateToast('Could not check for updates. Please check your connection.')
+      setTimeout(() => setUpdateToast(''), 4000)
+    }
+  }
 
   // Debounced input search
   const handleSearchChange = (e) => {
@@ -244,6 +281,13 @@ export default function App() {
         </nav>
 
         <div className="echo-nav-actions">
+          <button
+            className="echo-action-pill hov"
+            onClick={handleManualCheckUpdate}
+            title={`Shrey Music v${APP_VERSION} — Click to check for updates`}
+          >
+            {checkingUpdate ? '⏳ Checking...' : `🔄 v${APP_VERSION}`}
+          </button>
           <button className="echo-action-pill hov" aria-pressed={a.muted} onClick={a.toggleMute}>
             {a.muted ? '🔇 Muted' : '🔊 Sound'}
           </button>
@@ -432,6 +476,10 @@ export default function App() {
         </div>
         <Controls a={a} compact />
       </aside>
+
+      {/* In-App Update Modal & Notification Toast */}
+      {updateToast && <div className="echo-update-toast">{updateToast}</div>}
+      <UpdateModal updateInfo={updateInfo} onClose={() => setUpdateInfo(null)} />
     </>
   )
 }
